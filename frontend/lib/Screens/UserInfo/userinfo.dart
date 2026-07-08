@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:fundfinderff/Screens/BottomBar/bottombar.dart';
-import 'package:fundfinderff/auth/database.dart';
-import 'package:fundfinderff/auth/shared_pref.dart'; // 👈 Make sure this is imported
+import 'package:fundfinderff/models/enums.dart';
+import 'package:fundfinderff/models/profile.dart';
+import 'package:fundfinderff/state/profile_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:random_string/random_string.dart';
 
+/// Every field here maps directly onto something EligibilityDecisionEngine
+/// actually reads (see backend MatchCriteria) - unlike the old version of
+/// this form, which also collected Religion and Language and never used
+/// either for matching.
 class Userinfo extends StatefulWidget {
   const Userinfo({super.key});
 
@@ -14,40 +19,15 @@ class Userinfo extends StatefulWidget {
 }
 
 class _UserinfoState extends State<Userinfo> {
-  String? selectedClass;
-  String? selectedGender;
+  EducationLevel? selectedEducationLevel;
+  Gender? selectedGender;
   String? selectedState;
-  String? selectedReligion;
-  String? selectedLanguage;
+  Category? selectedCategory;
+  String? selectedDisability;
+  final TextEditingController incomeController = TextEditingController();
+  bool isSubmitting = false;
 
-  final List<String> classes = [
-    "upto class 8",
-    "Class 9",
-    "Class 10",
-    "Class 11",
-    "Class 12",
-    "Undergraduate",
-    "Postgraduate",
-  ];
-
-  final List<String> genders = ["Male", "Female", "Other"];
-
-  final List<String> states = [
-    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
-    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
-    "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
-    "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim",
-    "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
-  ];
-
-  final List<String> religions = [
-    "Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "Other"
-  ];
-
-  final List<String> languages = [
-    "Tamil", "Hindi", "English", "Telugu", "Kannada", "Malayalam",
-    "Bengali", "Punjabi", "Gujarati", "Marathi", "Other"
-  ];
+  final List<String> yesNo = ["No", "Yes"];
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +52,7 @@ class _UserinfoState extends State<Userinfo> {
                 ),
                 SizedBox(height: 10),
                 Text(
-                  "Complete your profile to explore relevant opportunities!",
+                  "Complete your profile to see scholarships you're actually eligible for!",
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -80,35 +60,68 @@ class _UserinfoState extends State<Userinfo> {
                   ),
                 ),
                 SizedBox(height: 30),
-                buildStyledDropdown("Present Class", classes, (value) {
-                  setState(() {
-                    selectedClass = value;
-                  });
-                }, selectedClass),
+                buildStyledDropdown<EducationLevel>(
+                  "Education Level",
+                  EducationLevel.values,
+                  (level) => level.label,
+                  (value) => setState(() => selectedEducationLevel = value),
+                  selectedEducationLevel,
+                ),
                 SizedBox(height: 20.0),
-                buildStyledDropdown("Gender", genders, (value) {
-                  setState(() {
-                    selectedGender = value;
-                  });
-                }, selectedGender),
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    child: TextFormField(
+                      controller: incomeController,
+                      keyboardType: TextInputType.number,
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15),
+                      decoration: InputDecoration(
+                        labelText: "Annual Family Income (₹)",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide(color: Colors.black, width: 2),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                      ),
+                    ),
+                  ),
+                ),
                 SizedBox(height: 20.0),
-                buildStyledDropdown("State", states, (value) {
-                  setState(() {
-                    selectedState = value;
-                  });
-                }, selectedState),
+                buildStyledDropdown<Category>(
+                  "Category",
+                  Category.values,
+                  (category) => category.label,
+                  (value) => setState(() => selectedCategory = value),
+                  selectedCategory,
+                ),
                 SizedBox(height: 20.0),
-                buildStyledDropdown("Religion", religions, (value) {
-                  setState(() {
-                    selectedReligion = value;
-                  });
-                }, selectedReligion),
+                buildStyledDropdown<Gender>(
+                  "Gender",
+                  Gender.values,
+                  (gender) => gender.label,
+                  (value) => setState(() => selectedGender = value),
+                  selectedGender,
+                ),
                 SizedBox(height: 20.0),
-                buildStyledDropdown("Language", languages, (value) {
-                  setState(() {
-                    selectedLanguage = value;
-                  });
-                }, selectedLanguage),
+                buildStyledDropdown<String>(
+                  "State",
+                  indianStates,
+                  (state) => state,
+                  (value) => setState(() => selectedState = value),
+                  selectedState,
+                ),
+                SizedBox(height: 20.0),
+                buildStyledDropdown<String>(
+                  "Do you have a disability?",
+                  yesNo,
+                  (value) => value,
+                  (value) => setState(() => selectedDisability = value),
+                  selectedDisability,
+                ),
                 SizedBox(height: 30.0),
                 Center(
                   child: ElevatedButton(
@@ -119,67 +132,21 @@ class _UserinfoState extends State<Userinfo> {
                       ),
                       backgroundColor: const Color.fromARGB(255, 0, 0, 0),
                     ),
-                    onPressed: () async {
-                      if (selectedClass == null ||
-                          selectedGender == null ||
-                          selectedState == null ||
-                          selectedReligion == null ||
-                          selectedLanguage == null) {
-                        Fluttertoast.showToast(
-                          msg: "Please fill all the fields",
-                          toastLength: Toast.LENGTH_SHORT,
-                          gravity: ToastGravity.CENTER,
-                          backgroundColor: Colors.red,
-                          textColor: Colors.white,
-                        );
-                        return;
-                      }
-
-                      String id = randomAlphaNumeric(10);
-                      Map<String, dynamic> userInfoMap = {
-                        "Present Class": selectedClass,
-                        "Gender": selectedGender,
-                        "State": selectedState,
-                        "Religion": selectedReligion,
-                        "Language": selectedLanguage,
-                        "Id": id,
-                      };
-
-                      await DatabaseMethods()
-                          .addUserDetail(userInfoMap, id)
-                          .then((value) async {
-                        await SharedPreferenceHelper().saveUserPresentClass(selectedClass!); // 👇 NEW LINE
-
-                        Fluttertoast.showToast(
-                          msg: "User Information added successfully",
-                          toastLength: Toast.LENGTH_SHORT,
-                          gravity: ToastGravity.CENTER,
-                          backgroundColor: Colors.green,
-                          textColor: Colors.white,
-                        );
-
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => BottomNav()),
-                        );
-                      }).catchError((error) {
-                        Fluttertoast.showToast(
-                          msg: "Error adding user information: $error",
-                          toastLength: Toast.LENGTH_SHORT,
-                          gravity: ToastGravity.CENTER,
-                          backgroundColor: Colors.red,
-                          textColor: Colors.white,
-                        );
-                      });
-                    },
-                    child: Text(
-                      "Submit",
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    onPressed: isSubmitting ? null : submit,
+                    child: isSubmitting
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : Text(
+                            "Submit",
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 18.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ],
@@ -190,8 +157,70 @@ class _UserinfoState extends State<Userinfo> {
     );
   }
 
-  Widget buildStyledDropdown(String label, List<String> items,
-      ValueChanged<String?> onChanged, String? selectedValue) {
+  Future<void> submit() async {
+    final income = double.tryParse(incomeController.text.trim());
+
+    if (selectedEducationLevel == null ||
+        selectedGender == null ||
+        selectedState == null ||
+        selectedCategory == null ||
+        selectedDisability == null ||
+        income == null) {
+      Fluttertoast.showToast(
+        msg: "Please fill all the fields correctly",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+      return;
+    }
+
+    setState(() => isSubmitting = true);
+    try {
+      final profile = Profile(
+        educationLevel: selectedEducationLevel!,
+        annualFamilyIncome: income,
+        category: selectedCategory!,
+        gender: selectedGender!,
+        state: selectedState!,
+        hasDisability: selectedDisability == "Yes",
+      );
+      await context.read<ProfileProvider>().saveProfile(profile);
+
+      Fluttertoast.showToast(
+        msg: "Profile saved successfully",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+      );
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => BottomNav()),
+      );
+    } catch (error) {
+      Fluttertoast.showToast(
+        msg: "Error saving profile: $error",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
+    }
+  }
+
+  Widget buildStyledDropdown<T>(
+    String label,
+    List<T> items,
+    String Function(T) labelOf,
+    ValueChanged<T?> onChanged,
+    T? selectedValue,
+  ) {
     final TextStyle commonTextStyle = GoogleFonts.poppins(
       color: const Color.fromARGB(137, 0, 0, 0),
       fontSize: 15.0,
@@ -205,7 +234,7 @@ class _UserinfoState extends State<Userinfo> {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        child: DropdownButtonFormField<String>(
+        child: DropdownButtonFormField<T>(
           decoration: InputDecoration(
             labelText: label,
             labelStyle: commonTextStyle,
@@ -228,10 +257,10 @@ class _UserinfoState extends State<Userinfo> {
           ),
           style: commonTextStyle,
           value: selectedValue,
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(
+          items: items.map((T item) {
+            return DropdownMenuItem<T>(
               value: item,
-              child: Text(item, style: commonTextStyle),
+              child: Text(labelOf(item), style: commonTextStyle),
             );
           }).toList(),
           onChanged: onChanged,
@@ -240,282 +269,3 @@ class _UserinfoState extends State<Userinfo> {
     );
   }
 }
-
-// import 'package:flutter/material.dart';
-// import 'package:fundfinderff/auth/BottomBar/bottombar.dart';
-// import 'package:fundfinderff/auth/database.dart';
-// import 'package:google_fonts/google_fonts.dart';
-// import 'package:fluttertoast/fluttertoast.dart';
-// import 'package:random_string/random_string.dart';
-
-// class Userinfo extends StatefulWidget {
-//   const Userinfo({super.key});
-
-//   @override
-//   State<Userinfo> createState() => _UserinfoState();
-// }
-
-// class _UserinfoState extends State<Userinfo> {
-//   String? selectedClass; // For Present Class
-//   String? selectedGender; // For Gender
-//   String? selectedState; // For State
-//   String? selectedReligion; // For Religion
-//   String? selectedLanguage; // For Language
-
-//   // Data for dropdowns
-//   final List<String> classes = [
-//   "upto class 8",
-//   "Class 9",
-//   "Class 10",
-//   "Class 11",
-//   "Class 12",
-//   "Undergraduate",
-//   "Postgraduate",
-//   "Postgraduation"
-//   ];
-
-//   final List<String> genders = ["Male", "Female", "Other"];
-
-//   final List<String> states = [
-//     "Andhra Pradesh",
-//     "Arunachal Pradesh",
-//     "Assam",
-//     "Bihar",
-//     "Chhattisgarh",
-//     "Goa",
-//     "Gujarat",
-//     "Haryana",
-//     "Himachal Pradesh",
-//     "Jharkhand",
-//     "Karnataka",
-//     "Kerala",
-//     "Madhya Pradesh",
-//     "Maharashtra",
-//     "Manipur",
-//     "Meghalaya",
-//     "Mizoram",
-//     "Nagaland",
-//     "Odisha",
-//     "Punjab",
-//     "Rajasthan",
-//     "Sikkim",
-//     "Tamil Nadu",
-//     "Telangana",
-//     "Tripura",
-//     "Uttar Pradesh",
-//     "Uttarakhand",
-//     "West Bengal"
-//   ];
-
-//   final List<String> religions = [
-//     "Hindu",
-//     "Muslim",
-//     "Christian",
-//     "Sikh",
-//     "Buddhist",
-//     "Jain",
-//     "Other"
-//   ];
-
-//   final List<String> languages = [
-//     "Tamil",
-//     "Hindi",
-//     "English",
-//     "Telugu",
-//     "Kannada",
-//     "Malayalam",
-//     "Bengali",
-//     "Punjabi",
-//     "Gujarati",
-//     "Marathi",
-//     "Other"
-//   ];
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: const Color.fromARGB(255, 251, 248, 252),
-//       resizeToAvoidBottomInset: true,
-//       body: SafeArea(
-//         child: SingleChildScrollView(
-//           child: Padding(
-//             padding: const EdgeInsets.all(20.0),
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 SizedBox(height: 40),
-//                 Text(
-//                   "Tell us More",
-//                   style: GoogleFonts.poppins(
-//                     color: Colors.black,
-//                     fontSize: 24.0,
-//                     fontWeight: FontWeight.bold,
-//                   ),
-//                 ),
-//                 SizedBox(height: 10),
-//                 Text(
-//                   "Complete your profile to explore relevant opportunities!",
-//                   style: GoogleFonts.poppins(
-//                     fontWeight: FontWeight.bold,
-//                     fontSize: 16,
-//                     color: Colors.grey[700],
-//                   ),
-//                 ),
-//                 SizedBox(height: 30),
-//                 buildStyledDropdown("Present Class", classes, (value) {
-//                   setState(() {
-//                     selectedClass = value;
-//                   });
-//                 }, selectedClass),
-//                 const SizedBox(height: 20.0),
-//                 buildStyledDropdown("Gender", genders, (value) {
-//                   setState(() {
-//                     selectedGender = value;
-//                   });
-//                 }, selectedGender),
-//                 const SizedBox(height: 20.0),
-//                 buildStyledDropdown("State", states, (value) {
-//                   setState(() {
-//                     selectedState = value;
-//                   });
-//                 }, selectedState),
-//                 const SizedBox(height: 20.0),
-//                 buildStyledDropdown("Religion", religions, (value) {
-//                   setState(() {
-//                     selectedReligion = value;
-//                   });
-//                 }, selectedReligion),
-//                 const SizedBox(height: 20.0),
-//                 buildStyledDropdown("Language", languages, (value) {
-//                   setState(() {
-//                     selectedLanguage = value;
-//                   });
-//                 }, selectedLanguage),
-//                 const SizedBox(height: 30.0),
-//                 Center(
-//                   child: ElevatedButton(
-//                     style: ElevatedButton.styleFrom(
-//                       padding: const EdgeInsets.symmetric(
-//                           horizontal: 30, vertical: 15),
-//                       shape: RoundedRectangleBorder(
-//                         borderRadius: BorderRadius.circular(20),
-//                       ),
-//                       backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-//                     ),
-//                     onPressed: () async {
-//                       if (selectedClass == null ||
-//                           selectedGender == null ||
-//                           selectedState == null ||
-//                           selectedReligion == null ||
-//                           selectedLanguage == null) {
-//                         Fluttertoast.showToast(
-//                           msg: "Please fill all the fields",
-//                           toastLength: Toast.LENGTH_SHORT,
-//                           gravity: ToastGravity.CENTER,
-//                           backgroundColor: Colors.red,
-//                           textColor: Colors.white,
-//                         );
-//                         return;
-//                       }
-
-//                       String id = randomAlphaNumeric(10);
-//                       Map<String, dynamic> userInfoMap = {
-//                         "Present Class": selectedClass,
-//                         "Gender": selectedGender,
-//                         "State": selectedState,
-//                         "Religion": selectedReligion,
-//                         "Language": selectedLanguage,
-//                         "Id": id,
-//                       };
-//                       await DatabaseMethods()
-//                           .addUserDetail(userInfoMap, id)
-//                           .then((value) {
-//                         Fluttertoast.showToast(
-//                           msg: "User Information added successfully",
-//                           toastLength: Toast.LENGTH_SHORT,
-//                           gravity: ToastGravity.CENTER,
-//                           backgroundColor: Colors.green,
-//                           textColor: Colors.white,
-//                         );
-
-//                         Navigator.pushReplacement(
-//                           context,
-//                           MaterialPageRoute(builder: (context) => BottomNav()),
-//                         );
-//                       }).catchError((error) {
-//                         Fluttertoast.showToast(
-//                           msg: "Error adding user information: $error",
-//                           toastLength: Toast.LENGTH_SHORT,
-//                           gravity: ToastGravity.CENTER,
-//                           backgroundColor: Colors.red,
-//                           textColor: Colors.white,
-//                         );
-//                       });
-//                     },
-//                     child: Text(
-//                       "Submit",
-//                       style: GoogleFonts.poppins(
-//                           color: const Color.fromARGB(255, 255, 254, 254),
-//                           fontSize: 18.0,
-//                           fontWeight: FontWeight.bold),
-//                     ),
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget buildStyledDropdown(String label, List<String> items,
-//       ValueChanged<String?> onChanged, String? selectedValue) {
-//     final TextStyle commonTextStyle = GoogleFonts.poppins(
-//       color: const Color.fromARGB(137, 0, 0, 0),
-//       fontSize: 15.0,
-//       fontWeight: FontWeight.bold,
-//     );
-
-//     return Card(
-//       elevation: 0,
-//       shape: RoundedRectangleBorder(
-//         borderRadius: BorderRadius.circular(15),
-//       ),
-//       child: Padding(
-//         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-//         child: DropdownButtonFormField<String>(
-//           decoration: InputDecoration(
-//             labelText: label,
-//             labelStyle: commonTextStyle,
-//             border: OutlineInputBorder(
-//               borderRadius: BorderRadius.circular(15),
-//               borderSide: BorderSide(color: Colors.black, width: 2),
-//             ),
-//             enabledBorder: OutlineInputBorder(
-//               borderRadius: BorderRadius.circular(15),
-//               borderSide: BorderSide(color: Colors.black, width: 2),
-//             ),
-//             focusedBorder: OutlineInputBorder(
-//               borderRadius: BorderRadius.circular(15),
-//               borderSide: BorderSide(color: Colors.black, width: 2),
-//             ),
-//             filled: true,
-//             fillColor: Colors.white,
-//             contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-//             hintStyle: commonTextStyle,
-//           ),
-//           style: commonTextStyle, // Apply the style to the input text
-//           value: selectedValue,
-//           items: items.map((String item) {
-//             return DropdownMenuItem<String>(
-//               value: item,
-//               child: Text(item, style: commonTextStyle),
-//             );
-//           }).toList(),
-//           onChanged: onChanged,
-//         ),
-//       ),
-//     );
-//   }
-// }

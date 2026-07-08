@@ -1,92 +1,84 @@
-
-
-
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:fundfinderff/Screens/Login/login.dart';
-import 'package:fundfinderff/Screens/UserInfo/userinfo.dart';
+import 'package:provider/provider.dart';
 import 'package:fundfinderff/Screens/BottomBar/bottombar.dart';
-import 'package:fundfinderff/Screens/Chatbot/chat_provider.dart'; // Import your provider
+import 'package:fundfinderff/Screens/Login/login.dart';
 import 'package:fundfinderff/Screens/Login/Signin.dart';
-import 'package:get/get.dart';
-import 'package:provider/provider.dart'; // Import Provider
-import 'firebase_options.dart';
-import 'upload_scholarship.dart'; // Import the scholarship uploader
+import 'package:fundfinderff/Screens/UserInfo/userinfo.dart';
+import 'package:fundfinderff/Screens/Chatbot/chat_provider.dart';
+import 'package:fundfinderff/state/auth_provider.dart';
+import 'package:fundfinderff/state/profile_provider.dart';
+import 'package:fundfinderff/state/match_provider.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  // Upload scholarships when the app starts
-  ScholarshipUploader uploader = ScholarshipUploader();
-  await uploader.uploadScholarships();
-
+void main() {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-            create: (_) => ChatProvider()), // Add Provider Here
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => MatchProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
       child: const MyApp(),
     ),
   );
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'FundFinder',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      // 👇 Add this
       routes: {
         '/login': (context) => const Login(),
         '/signin': (context) => const Signin(),
         '/userinfo': (context) => const Userinfo(),
         '/home': (context) => const BottomNav(),
       },
-      home: StreamBuilder(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (ctx, snapshot) {
-          if (snapshot.hasData) {
-            return Signin(); // This should be your logged-in home
-          }
-          return  Signin(); // Or Login screen if you prefer
-        },
-      ),
+      home: const AuthGate(),
     );
   }
 }
 
-// class MyApp extends StatelessWidget {
-//   const MyApp({super.key});
+/// Replaces the old FirebaseAuth.authStateChanges() StreamBuilder, whose two
+/// branches both returned Signin() - meaning the app always opened on
+/// sign-up regardless of login state. This checks the actual stored access
+/// token instead.
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return GetMaterialApp(
-//       debugShowCheckedModeBanner: false,
-//       title: 'Flutter Demo',
-//       theme: ThemeData(
-//         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-//         useMaterial3: true,
-//       ),
-//       home: StreamBuilder(
-//         stream: FirebaseAuth.instance.authStateChanges(),
-//         builder: (ctx, snapshot) {
-//           if (snapshot.hasData) {
-//             return Login();
-//           }
-//           return Userinfo();
-//         },
-//       ),
-//     );
-//   }
-// }
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  @override
+  void initState() {
+    super.initState();
+    _redirect();
+  }
+
+  Future<void> _redirect() async {
+    final authProvider = context.read<AuthProvider>();
+    await authProvider.checkAuthStatus();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => authProvider.isLoggedIn ? const BottomNav() : const Login(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
+}

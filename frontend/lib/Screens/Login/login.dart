@@ -1,8 +1,12 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:fundfinderff/Screens/UserInfo/userinfo.dart';
+import 'package:fundfinderff/Screens/BottomBar/bottombar.dart';
 import 'package:fundfinderff/Screens/Login/Signin.dart';
 import 'package:fundfinderff/Screens/Login/forgotpassword.dart';
+import 'package:fundfinderff/services/api_exception.dart';
+import 'package:fundfinderff/state/auth_provider.dart';
+import 'package:fundfinderff/state/profile_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class Login extends StatefulWidget {
@@ -14,6 +18,7 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   bool textvisible = true;
+  bool isSubmitting = false;
   String email = "", password = "";
 
   final _formkey = GlobalKey<FormState>();
@@ -21,26 +26,31 @@ class _LoginState extends State<Login> {
   TextEditingController useremailcontroller = new TextEditingController();
   TextEditingController userpasswordcontroller = new TextEditingController();
 
-  userLogin() async {
+  Future<void> userLogin() async {
+    setState(() => isSubmitting = true);
     try {
-      await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+      await context.read<AuthProvider>().login(email, password);
+
+      // Route to the profile form if this user hasn't completed it yet,
+      // otherwise straight to the dashboard.
+      final profileProvider = context.read<ProfileProvider>();
+      await profileProvider.fetchProfile();
+      if (!mounted) return;
+
       Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (context) => Userinfo()));
-    } on FirebaseAuthException catch (e) {
-      if (e.code == "user-not-found") {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-          "No User found for that Email",
-          style: TextStyle(fontSize: 18.0, color: Colors.black),
-        )));
-      } else if (e.code == "wrong-password") {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-          "Wrong Passwod provided by User",
-          style: TextStyle(fontSize: 18.0, color: Colors.black),
-        )));
-      }
+        context,
+        MaterialPageRoute(
+          builder: (context) => profileProvider.hasProfile ? BottomNav() : Userinfo(),
+        ),
+      );
+    } on ApiException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+        e.statusCode == 401 ? "Incorrect email or password" : e.message,
+        style: TextStyle(fontSize: 18.0, color: Colors.black),
+      )));
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
     }
   }
 
@@ -214,16 +224,18 @@ class _LoginState extends State<Login> {
                                   height: 80.0,
                                 ),
                                 GestureDetector(
-                                  onTap: () {
-                                    if (_formkey.currentState!.validate()) {
-                                      setState(() {
-                                        email = useremailcontroller.text.trim();
-                                        password =
-                                            userpasswordcontroller.text.trim();
-                                      });
-                                    }
-                                    userLogin();
-                                  },
+                                  onTap: isSubmitting
+                                      ? null
+                                      : () {
+                                          if (_formkey.currentState!.validate()) {
+                                            setState(() {
+                                              email = useremailcontroller.text.trim();
+                                              password =
+                                                  userpasswordcontroller.text.trim();
+                                            });
+                                            userLogin();
+                                          }
+                                        },
                                   child: Material(
                                     elevation: 5.0,
                                     borderRadius: BorderRadius.circular(20),
@@ -244,13 +256,20 @@ class _LoginState extends State<Login> {
                                           borderRadius:
                                               BorderRadius.circular(20)),
                                       child: Center(
-                                          child: Text(
-                                        "LOGIN",
-                                        style: GoogleFonts.poppins(
-                                            color: Colors.black,
-                                            fontSize: 18.0,
-                                            fontWeight: FontWeight.bold),
-                                      )),
+                                          child: isSubmitting
+                                              ? SizedBox(
+                                                  height: 20,
+                                                  width: 20,
+                                                  child: CircularProgressIndicator(
+                                                      strokeWidth: 2, color: Colors.black),
+                                                )
+                                              : Text(
+                                                  "LOGIN",
+                                                  style: GoogleFonts.poppins(
+                                                      color: Colors.black,
+                                                      fontSize: 18.0,
+                                                      fontWeight: FontWeight.bold),
+                                                )),
                                     ),
                                   ),
                                 ),

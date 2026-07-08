@@ -34,13 +34,8 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  firebase_core: ^3.4.0
-  firebase_auth: ^5.2.0
   shared_preferences: ^2.2.3
-  get: ^4.6.6
-  random_string: ^2.3.1
-  cloud_firestore: ^5.4.0
-  firebase_analytics: ^11.3.0
+  http: ^1.2.2
   input_quantity: ^2.5.0
   line_awesome_flutter: ^3.0.1
   gradient_widgets: ^0.6.0
@@ -108,7 +103,6 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/
-    - assets/scholarship_data.json
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

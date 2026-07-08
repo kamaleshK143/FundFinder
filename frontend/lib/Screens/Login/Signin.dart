@@ -1,13 +1,10 @@
-// ignore_for_file: unnecessary_null_comparison
-
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:fundfinderff/Screens/Login/login.dart';
-import 'package:fundfinderff/auth/database.dart';
-import 'package:fundfinderff/auth/shared_pref.dart';
+import 'package:fundfinderff/services/api_exception.dart';
+import 'package:fundfinderff/state/auth_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fundfinderff/Screens/UserInfo/userinfo.dart';
-
 
 class Signin extends StatefulWidget {
   const Signin({super.key});
@@ -18,66 +15,48 @@ class Signin extends StatefulWidget {
 
 class _SigninState extends State<Signin> {
   bool textvisible = true;
+  bool isSubmitting = false;
   String email = "", password = "", name = "";
 
   TextEditingController namecontroller = new TextEditingController();
   TextEditingController passwordcontroller = new TextEditingController();
   TextEditingController mailcontroller = new TextEditingController();
-  
+
   final _formkey = GlobalKey<FormState>();
 
-  registration() async {
-  if (password != null) {
+  Future<void> registration() async {
+    setState(() => isSubmitting = true);
     try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
+      await context.read<AuthProvider>().register(name, email, password);
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: Colors.redAccent,
+        backgroundColor: Colors.green,
         content: Text(
           "Registered Successfully",
           style: TextStyle(fontSize: 20.0),
         ),
       ));
 
-      String Id = FirebaseAuth.instance.currentUser!.uid;
-
-      Map<String, dynamic> addUserInfo = {
-        "Name": namecontroller.text.trim(),
-        "Email": mailcontroller.text.trim(),
-        "Id": Id,
-      };
-
-      await DatabaseMethods().addUserDetails(addUserInfo, Id);
-      await SharedPreferenceHelper().saveUserName(namecontroller.text.trim());
-      await SharedPreferenceHelper().saveUserEmail(mailcontroller.text.trim());
-      await SharedPreferenceHelper().saveUserId(Id);
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => Userinfo()),
       );
-    } on FirebaseException catch (e) {
-      if (e.code == "weak-password") {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-            "Password provided is too Weak",
-            style: TextStyle(fontSize: 18.0),
-          ),
-        ));
-      } else if (e.code == "email-already-in-use") {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: Colors.orangeAccent,
-          content: Text(
-            "Account Already exists",
-            style: TextStyle(fontSize: 18.0),
-          ),
-        ));
+    } on ApiException catch (e) {
+      String message = e.message;
+      if (e.statusCode == 409) {
+        message = "An account with that email already exists";
+      } else if (e.statusCode == 400) {
+        message = "Password must be at least 8 characters";
       }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: Colors.orangeAccent,
+        content: Text(message, style: TextStyle(fontSize: 16.0)),
+      ));
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
     }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -205,11 +184,13 @@ class _SigninState extends State<Signin> {
                                 height: 30.0,
                               ),
                               TextFormField(
-                              
                                 controller: passwordcontroller,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'Please Enter Password';
+                                  }
+                                  if (value.length < 8) {
+                                    return 'Password must be at least 8 characters';
                                   }
                                   return null;
                                 },
@@ -239,16 +220,18 @@ class _SigninState extends State<Signin> {
                                 height: 80.0,
                               ),
                               GestureDetector(
-                                onTap: () async {
-                                  if (_formkey.currentState!.validate()) {
-                                    setState(() {
-                                      email = mailcontroller.text;
-                                      name = namecontroller.text;
-                                      password = passwordcontroller.text;
-                                    });
-                                  }
-                                  registration();
-                                },
+                                onTap: isSubmitting
+                                    ? null
+                                    : () {
+                                        if (_formkey.currentState!.validate()) {
+                                          setState(() {
+                                            email = mailcontroller.text.trim();
+                                            name = namecontroller.text.trim();
+                                            password = passwordcontroller.text.trim();
+                                          });
+                                          registration();
+                                        }
+                                      },
                                 child: Material(
                                   elevation: 5.0,
                                   borderRadius: BorderRadius.circular(20),
@@ -269,13 +252,20 @@ class _SigninState extends State<Signin> {
                                         borderRadius:
                                             BorderRadius.circular(20)),
                                     child: Center(
-                                        child: Text(
-                                      "SIGN UP",
-                                      style: GoogleFonts.poppins(
-                                          color: Colors.black,
-                                          fontSize: 18.0,
-                                          fontWeight: FontWeight.bold),
-                                    )),
+                                        child: isSubmitting
+                                            ? SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child: CircularProgressIndicator(
+                                                    strokeWidth: 2, color: Colors.black),
+                                              )
+                                            : Text(
+                                                "SIGN UP",
+                                                style: GoogleFonts.poppins(
+                                                    color: Colors.black,
+                                                    fontSize: 18.0,
+                                                    fontWeight: FontWeight.bold),
+                                              )),
                                   ),
                                 ),
                               ),
