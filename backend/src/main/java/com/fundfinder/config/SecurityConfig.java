@@ -40,6 +40,12 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
+                        // Without this, a 403 from AccessDeniedHandlerImpl (which calls
+                        // response.sendError) triggers an internal forward to /error. JwtAuthenticationFilter
+                        // skips ERROR dispatches by default, so that second pass sees an anonymous
+                        // user and the catch-all authenticated() rule below turns the real 403
+                        // into a misleading 401. Permitting /error keeps the original status intact.
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/scholarships/**").permitAll()
                         .requestMatchers("/api/scholarships/**").hasRole("ADMIN")
