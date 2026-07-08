@@ -1,53 +1,66 @@
 import 'package:flutter/material.dart';
-import 'package:fundfinderff/Screens/Chatbot/scholarship_loader.dart';
+import 'package:fundfinderff/models/enums.dart';
+import 'package:fundfinderff/services/match_service.dart';
 
+class _ChatQuestion {
+  final String text;
+  final List<String>? options; // null means free-text input (income)
 
+  _ChatQuestion({required this.text, this.options});
+}
+
+/// A step-by-step guided Q&A that builds a MatchCriteria one answer at a
+/// time, then submits it to POST /api/match/preview - the exact same
+/// EligibilityDecisionEngine the dashboard uses via GET /api/match. This is
+/// a rule-driven guided flow, not AI/NLP: every question maps directly onto
+/// one MatchCriteria field, and answers are constrained to the same enum
+/// options as the profile form, so there's no free-text interpretation or
+/// substring guessing involved anywhere in the pipeline.
 class ChatProvider extends ChangeNotifier {
-  List<Map<String, dynamic>> _messages = [];
-  List<String> _userAnswers = [];
+  final MatchService _matchService = MatchService();
 
+  final List<Map<String, dynamic>> _messages = [];
   List<Map<String, dynamic>> get messages => _messages;
 
   int _questionIndex = 0;
   bool _isProcessing = false;
-  List<Map<String, dynamic>> _questions = [
-    {
-      'question': "What is your current level of education?",
-      'options': ["High School", "Undergraduate", "Postgraduate", "PhD / Doctorate"]
-    },
-    {
-      'question': "What is your gender?",
-      'options': ["Male", "Female", "Other"]
-    },
-    {
-      'question': "Do you belong to any reserved category?",
-      'options': ["SC", "ST", "OBC", "General", "Minority"]
-    },
-    {
-      'question': "What is your annual family income?",
-      'options': ["Below ₹1 Lakh", "₹1–2.5 Lakhs", "₹2.5–5 Lakhs", "Above ₹5 Lakhs"]
-    },
-    {
-      'question': "Which state are you residing or studying in?",
-      'options': ["Tamil Nadu", "Karnataka", "Maharashtra", "Other"]
-    },
-    {
-      'question': "What is your field of study?",
-      'options': ["Engineering", "Arts", "Science", "Medicine", "Management", "Others"]
-    },
-    {
-      'question': "Are you looking for merit-based or need-based scholarships?",
-      'options': ["Merit-based", "Need-based", "Both"]
-    },
-    {
-      'question': "Do you have a disability status?",
-      'options': ["Yes", "No"]
-    }
+
+  EducationLevel? _educationLevel;
+  double? _annualIncome;
+  Category? _category;
+  Gender? _gender;
+  String? _state;
+  bool? _hasDisability;
+
+  static final List<_ChatQuestion> _questions = [
+    _ChatQuestion(
+      text: "What is your current education level?",
+      options: EducationLevel.values.map((e) => e.label).toList(),
+    ),
+    _ChatQuestion(
+      text: "What is your annual family income, in rupees? (type a number, e.g. 250000)",
+    ),
+    _ChatQuestion(
+      text: "Which category do you belong to?",
+      options: Category.values.map((e) => e.label).toList(),
+    ),
+    _ChatQuestion(
+      text: "What is your gender?",
+      options: Gender.values.map((e) => e.label).toList(),
+    ),
+    _ChatQuestion(
+      text: "Which state are you from?",
+      options: indianStates,
+    ),
+    _ChatQuestion(
+      text: "Do you have a disability?",
+      options: ["Yes", "No"],
+    ),
   ];
 
   ChatProvider() {
     _sendBotMessage(
-        "Hello! I can help you find scholarships. Let's get started!");
+        "Hi! I'll ask a few quick questions and match you against the same rule-based eligibility engine used on the dashboard - a plain decision tree, not AI.");
     _askNextQuestion();
   }
 
@@ -57,83 +70,90 @@ class ChatProvider extends ChangeNotifier {
   }
 
   void sendUserMessage(String text) {
-    if (_isProcessing) return;
+    if (_isProcessing || _questionIndex >= _questions.length) return;
 
     _messages.add({"text": text, "isUser": true});
     notifyListeners();
 
-    _processUserResponse(text);
+    _recordAnswer(text.trim());
   }
 
-  void _processUserResponse(String text) {
-    if (_questionIndex < _questions.length) {
-      _userAnswers.add(text);
-      _questionIndex++;
-      _askNextQuestion();
-    } else {
-      _fetchScholarships();
+  void _recordAnswer(String text) {
+    switch (_questionIndex) {
+      case 0:
+        _educationLevel = EducationLevel.values.firstWhere((e) => e.label == text);
+        break;
+      case 1:
+        final parsed = double.tryParse(text);
+        if (parsed == null || parsed < 0) {
+          _sendBotMessage("That doesn't look like a valid amount. Please enter a number, e.g. 250000");
+          return;
+        }
+        _annualIncome = parsed;
+        break;
+      case 2:
+        _category = Category.values.firstWhere((e) => e.label == text);
+        break;
+      case 3:
+        _gender = Gender.values.firstWhere((e) => e.label == text);
+        break;
+      case 4:
+        _state = text;
+        break;
+      case 5:
+        _hasDisability = text == "Yes";
+        break;
     }
+    _questionIndex++;
+    _askNextQuestion();
   }
 
   void _askNextQuestion() {
-    if (_questionIndex < _questions.length) {
-      var questionData = _questions[_questionIndex];
-      String questionText = questionData['question'];
-      List<String> options = List<String>.from(questionData['options']);
+    if (_questionIndex >= _questions.length) {
+      _fetchMatches();
+      return;
+    }
 
-      _messages.add({"text": questionText, "isUser": false});
+    final question = _questions[_questionIndex];
+    _messages.add({"text": question.text, "isUser": false});
 
-      // Store options as selectable buttons
-      for (var option in options) {
+    if (question.options != null) {
+      for (final option in question.options!) {
         _messages.add({"text": option, "isUser": false, "isOption": true});
       }
-
-      notifyListeners();
-    } else {
-      _fetchScholarships();
     }
-  }
 
-  void searchScholarship(String name) {
-    final scholarship = ScholarshipLoader.searchScholarshipByName(name);
-
-    if (scholarship == null) {
-      _sendBotMessage("No scholarship found with the name: $name");
-    } else {
-      _sendBotMessage(
-          "${scholarship.name}\n\n${scholarship.about}\n\n🎓 Reward: ${scholarship.reward}\n\n🔗 [Apply Now](${scholarship.link})"
-      );
-    }
-  }
-  void _addScholarshipMessage(Scholarship scholarship) {
-    _messages.add({
-      "type": "scholarship",
-      "scholarship": scholarship,
-      "isUser": false,
-    });
     notifyListeners();
   }
 
-
-  void _fetchScholarships() async {
-    _sendBotMessage("Fetching scholarships based on your answers... 🔍");
+  Future<void> _fetchMatches() async {
+    _isProcessing = true;
+    _sendBotMessage("Finding scholarships that match your answers...");
 
     try {
-      await ScholarshipLoader.loadScholarships(); // Load from JSON
-      final scholarships = ScholarshipLoader.filterScholarships(_userAnswers);
+      final matches = await _matchService.preview({
+        'educationLevel': _educationLevel!.name,
+        'annualIncome': _annualIncome,
+        'category': _category!.name,
+        'gender': _gender!.name,
+        'state': _state,
+        'hasDisability': _hasDisability,
+      });
 
-      if (scholarships.isEmpty) {
-        _sendBotMessage("No scholarships matched your criteria. Try modifying your answers.");
+      if (matches.isEmpty) {
+        _sendBotMessage("No scholarships matched your answers right now. Try a different combination.");
       } else {
-        _sendBotMessage("Here are some scholarships for you:");
-        for (var scholarship in scholarships) {
-          _addScholarshipMessage(scholarship); // 👈 Add this instead of a text message
+        _sendBotMessage("Here are ${matches.length} scholarship(s) you're eligible for:");
+        for (final scholarship in matches) {
+          _messages.add({"type": "scholarship", "scholarship": scholarship, "isUser": false});
         }
+        notifyListeners();
       }
     } catch (e) {
-      _sendBotMessage("An error occurred while fetching scholarships. Please try again later.");
-      print("Error in fetching scholarships: $e");
+      _sendBotMessage("Something went wrong while matching. Please try again in a moment.");
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
     }
   }
-
 }

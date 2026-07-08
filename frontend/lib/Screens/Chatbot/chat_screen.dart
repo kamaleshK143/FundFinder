@@ -1,21 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:fundfinderff/models/scholarship.dart';
+import 'package:fundfinderff/widgets/scholarship_card.dart';
 import 'chat_provider.dart';
-import 'scholarship_loader.dart';
 
 class ChatScreen extends StatelessWidget {
   const ChatScreen({super.key});
-
-  void launchScholarshipLink(String url) async {
-    final Uri uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      print("Could not launch $url");
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,18 +15,16 @@ class ChatScreen extends StatelessWidget {
       appBar: AppBar(
         centerTitle: false,
         automaticallyImplyLeading: false,
-        title:  Text("🎓 Fund Finder Chatbot 🎓",  style: GoogleFonts.poppins(
-                        color: Colors.black,
-                        fontSize: 20.0,
-                        fontWeight: FontWeight.bold,
-                      ),
-      ),
+        title: Text(
+          "Guided Scholarship Finder",
+          style: GoogleFonts.poppins(color: Colors.black, fontSize: 20.0, fontWeight: FontWeight.bold),
+        ),
       ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Column(
           children: [
-            Expanded(child: ChatMessages(onApplyPressed: launchScholarshipLink)),
+            const Expanded(child: ChatMessages()),
             const ChatInputField(),
           ],
         ),
@@ -45,9 +34,7 @@ class ChatScreen extends StatelessWidget {
 }
 
 class ChatMessages extends StatefulWidget {
-  final void Function(String url) onApplyPressed;
-
-  const ChatMessages({super.key, required this.onApplyPressed});
+  const ChatMessages({super.key});
 
   @override
   State<ChatMessages> createState() => _ChatMessagesState();
@@ -56,9 +43,7 @@ class ChatMessages extends StatefulWidget {
 class _ChatMessagesState extends State<ChatMessages> {
   final ScrollController _scrollController = ScrollController();
 
-  @override
-  void didUpdateWidget(covariant ChatMessages oldWidget) {
-    super.didUpdateWidget(oldWidget);
+  void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
@@ -70,11 +55,7 @@ class _ChatMessagesState extends State<ChatMessages> {
   Widget build(BuildContext context) {
     return Consumer<ChatProvider>(
       builder: (context, chatProvider, child) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-          }
-        });
+        _scrollToBottom();
 
         return ListView.builder(
           controller: _scrollController,
@@ -87,12 +68,9 @@ class _ChatMessagesState extends State<ChatMessages> {
               return OptionButton(optionText: message["text"]);
             } else if (message["type"] == "scholarship") {
               final Scholarship scholarship = message["scholarship"];
-              return ScholarshipCard(scholarship: scholarship, onApplyPressed: widget.onApplyPressed);
+              return ScholarshipCard(scholarship: scholarship);
             } else {
-              return ChatBubble(
-                text: message["text"],
-                isUser: message["isUser"],
-              );
+              return ChatBubble(text: message["text"], isUser: message["isUser"]);
             }
           },
         );
@@ -178,7 +156,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
     if (_controller.text.trim().isEmpty) return;
     Provider.of<ChatProvider>(context, listen: false).sendUserMessage(_controller.text.trim());
     _controller.clear();
-    setState(() {}); // Refresh UI to update send button state
+    setState(() {});
   }
 
   @override
@@ -193,11 +171,12 @@ class _ChatInputFieldState extends State<ChatInputField> {
               child: TextField(
                 controller: _controller,
                 decoration: InputDecoration(
-                  hintText: "Type your message...",
+                  hintText: "Type your answer...",
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
                 onChanged: (_) => setState(() {}),
+                onSubmitted: (_) => _sendMessage(),
               ),
             ),
             const SizedBox(width: 10),
@@ -205,49 +184,6 @@ class _ChatInputFieldState extends State<ChatInputField> {
               onPressed: _controller.text.trim().isEmpty ? null : _sendMessage,
               backgroundColor: Color(0xFF4F8ED5),
               child: const Icon(Icons.send, color: Colors.white),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class ScholarshipCard extends StatelessWidget {
-  final Scholarship scholarship;
-  final void Function(String url) onApplyPressed;
-
-  const ScholarshipCard({super.key, required this.scholarship, required this.onApplyPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(scholarship.name,style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple)),
-            const SizedBox(height: 8),
-            Text(scholarship.about,style: GoogleFonts.poppins(fontSize: 14)),
-            const SizedBox(height: 8),
-            Text("Reward: ${scholarship.reward}",style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () => launchUrl(Uri.parse(scholarship.link)),
-                icon: const Icon(Icons.open_in_new),
-                label:  Text("Apply Now",style: GoogleFonts.poppins(fontSize: 14)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
             ),
           ],
         ),
