@@ -1,0 +1,5 @@
+# Repo-wide ignores. Project-specific ignores live in backend/.gitignore
+# and frontend/.gitignore (Maven and Flutter conventions respectively).
+.DS_Store
+*.log
+.claude/

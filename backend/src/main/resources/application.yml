@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: fundfinder-backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/fundfinder?createDatabaseIfNotExist=false&useSSL=false&serverTimezone=UTC
+    username: ${DB_USERNAME:fundfinder_app}
+    password: ${DB_PASSWORD:fundfinder_password}
+  jpa:
+    hibernate:
+      # 'update' is fine for a college project's dev loop (auto-creates/alters
+      # tables from the entities). A production app would use Flyway/Liquibase
+      # migrations instead - documented as a known limitation in the README.
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  jwt:
+    # Dev-only default so `mvn spring-boot:run` works out of the box.
+    # Override with a real secret via the JWT_SECRET env var outside local dev.
+    secret: ${JWT_SECRET:dev-only-fundfinder-secret-key-change-me-please-1234567890}
+    access-token-expiration-ms: 900000      # 15 minutes
+    refresh-token-expiration-ms: 604800000  # 7 days
