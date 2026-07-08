@@ -116,9 +116,8 @@ class _SigninState extends State<Signin> {
                       elevation: 5.0,
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
-                        padding: EdgeInsets.only(left: 20.0, right: 20.0),
+                        padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
                         width: MediaQuery.of(context).size.width,
-                        height: MediaQuery.of(context).size.height / 1.8,
                         decoration: BoxDecoration(
                             gradient: LinearGradient(
                                 begin: Alignment.topLeft,

@@ -46,7 +46,8 @@ public class SecurityConfig {
                         // user and the catch-all authenticated() rule below turns the real 403
                         // into a misleading 401. Permitting /error keeps the original status intact.
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh", "/api/auth/logout").permitAll()
+                        .requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/scholarships/**").permitAll()
                         .requestMatchers("/api/scholarships/**").hasRole("ADMIN")
                         .requestMatchers("/api/profile/**", "/api/match/**").authenticated()

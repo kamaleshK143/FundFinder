@@ -115,9 +115,8 @@ class _LoginState extends State<Login> {
                         elevation: 5.0,
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
-                          padding: EdgeInsets.only(left: 20.0, right: 20.0),
+                          padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
                           width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.height / 2,
                           decoration: BoxDecoration(
                               gradient: LinearGradient(
                                   begin: Alignment.topLeft,
