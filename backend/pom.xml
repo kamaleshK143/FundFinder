@@ -102,6 +102,16 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- Windows-only fix: the default manifest-only-jar classpath trick can
+					     make Surefire misreport @Nested JUnit 5 test counts as 0 in the plain-text
+					     summary, even though the tests actually ran (the XML report is unaffected). -->
+					<useManifestOnlyJar>false</useManifestOnlyJar>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<executions>
 					<execution>
