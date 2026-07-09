@@ -29,17 +29,19 @@ class _BottomNavState extends State<BottomNav> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: currentPage,
       bottomNavigationBar: Container(
-        color: Color(0xFFFFFFFF),
+        color: colorScheme.surface,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
           child: GNav(
-            backgroundColor: Color(0xFFFFFFFF),
-            color: Color(0xFF8796B5),
-            activeColor: Color(0xFF0461C9),
-            tabBackgroundColor: Color(0xFFEFF8FF),
+            backgroundColor: colorScheme.surface,
+            color: colorScheme.onSurfaceVariant,
+            activeColor: colorScheme.primary,
+            tabBackgroundColor: colorScheme.primaryContainer,
             gap: 8,
             padding: const EdgeInsets.all(16),
             onTabChange: (index) {

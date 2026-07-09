@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:fundfinderff/Screens/Login/login.dart';
 import 'package:fundfinderff/state/auth_provider.dart';
 import 'package:fundfinderff/state/profile_provider.dart';
+import 'package:fundfinderff/state/theme_provider.dart';
+import 'package:fundfinderff/theme/spacing.dart';
+import 'package:fundfinderff/widgets/fade_slide_route.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -60,82 +63,67 @@ class _ProfileState extends State<Profile> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
     final name = auth.currentUser?.fullName;
     final email = auth.currentUser?.email;
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text(
-          "FundFinder",
-          style: GoogleFonts.megrim(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.black,
-        elevation: 0,
-      ),
+      appBar: AppBar(automaticallyImplyLeading: false, title: const Text("Profile")),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
           : SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Stack(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.only(top: 45.0, left: 20.0, right: 20.0),
-                        height: MediaQuery.of(context).size.height / 4.3,
-                        width: MediaQuery.of(context).size.width,
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.vertical(
-                            bottom: Radius.elliptical(MediaQuery.of(context).size.width, 105.0),
-                          ),
+                  Center(
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 44,
+                          backgroundColor: colorScheme.primaryContainer,
+                          child: Icon(Icons.person, size: 44, color: colorScheme.onPrimaryContainer),
                         ),
-                      ),
-                      Center(
-                        child: Container(
-                          margin: EdgeInsets.only(top: MediaQuery.of(context).size.height / 6.5),
-                          child: Material(
-                            elevation: 10.0,
-                            borderRadius: BorderRadius.circular(60),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(60),
-                              child: Image.asset(
-                                "assets/appicon.png",
-                                height: 120,
-                                width: 120,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          name ?? "User",
+                          style: GoogleFonts.poppins(fontSize: 20.0, fontWeight: FontWeight.bold),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 70.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              name ?? "User",
-                              style: GoogleFonts.poppins(color: Colors.white, fontSize: 23.0, fontWeight: FontWeight.bold),
-                            )
-                          ],
-                        ),
-                      )
-                    ],
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 20.0),
-                  buildInfoTile(Icons.person, "Name", name ?? "User"),
-                  const SizedBox(height: 20.0),
-                  buildInfoTile(Icons.email, "Email", email ?? "user@example.com"),
-                  const SizedBox(height: 20.0),
-                  GestureDetector(
+                  const SizedBox(height: AppSpacing.xl),
+                  _sectionLabel(context, "Account"),
+                  const SizedBox(height: AppSpacing.sm),
+                  buildInfoTile(context, Icons.person_outline, "Name", name ?? "User"),
+                  const SizedBox(height: AppSpacing.sm),
+                  buildInfoTile(context, Icons.email_outlined, "Email", email ?? "user@example.com"),
+                  const SizedBox(height: AppSpacing.xl),
+                  _sectionLabel(context, "Preferences"),
+                  const SizedBox(height: AppSpacing.sm),
+                  Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, _) => Card(
+                      child: SwitchListTile(
+                        secondary: const Icon(Icons.dark_mode_outlined),
+                        title: const Text("Dark Mode"),
+                        value: themeProvider.isDarkMode,
+                        onChanged: (value) => themeProvider.setDarkMode(value),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  _sectionLabel(context, "More"),
+                  const SizedBox(height: AppSpacing.sm),
+                  buildActionTile(
+                    context,
+                    Icons.description_outlined,
+                    "Terms & Conditions",
                     onTap: () {
                       showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: Text("Terms & Conditions"),
-                          content: SingleChildScrollView(
+                          title: const Text("Terms & Conditions"),
+                          content: const SingleChildScrollView(
                             child: Text(
                               "By using FundFinder, you agree to the following:\n\n"
                               "1. Your data is used only to suggest scholarships.\n"
@@ -143,31 +131,36 @@ class _ProfileState extends State<Profile> {
                               "3. You are responsible for the data you provide.\n"
                               "4. FundFinder is not liable for external links or offers.\n\n"
                               "For help, contact: support@fundfinder.com",
-                              style: GoogleFonts.poppins(fontSize: 14),
+                              style: TextStyle(fontSize: 14),
                             ),
                           ),
                           actions: [
                             TextButton(
-                              child: Text("Close"),
+                              child: const Text("Close"),
                               onPressed: () => Navigator.pop(context),
                             ),
                           ],
                         ),
                       );
                     },
-                    child: buildActionTile(Icons.description, "Terms & Conditions"),
                   ),
-                  const SizedBox(height: 20.0),
-                  GestureDetector(
+                  const SizedBox(height: AppSpacing.sm),
+                  buildActionTile(
+                    context,
+                    Icons.delete_outline,
+                    "Delete Account",
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Account deletion isn't available yet.")),
+                        const SnackBar(content: Text("Account deletion isn't available yet.")),
                       );
                     },
-                    child: buildActionTile(Icons.delete, "Delete Account"),
                   ),
-                  const SizedBox(height: 20.0),
-                  GestureDetector(
+                  const SizedBox(height: AppSpacing.sm),
+                  buildActionTile(
+                    context,
+                    Icons.logout,
+                    "Logout",
+                    iconColor: colorScheme.error,
                     onTap: () {
                       _showConfirmationDialog(
                         context: context,
@@ -179,81 +172,49 @@ class _ProfileState extends State<Profile> {
                           if (!mounted) return;
                           Navigator.pushAndRemoveUntil(
                             context,
-                            MaterialPageRoute(builder: (context) => Login()),
+                            fadeSlideRoute(Login()),
                             (route) => false,
                           );
                         },
                       );
                     },
-                    child: buildActionTile(Icons.logout, "Logout"),
                   ),
-                  const SizedBox(height: 30.0),
+                  const SizedBox(height: AppSpacing.lg),
                 ],
               ),
             ),
     );
   }
 
-  Widget buildInfoTile(IconData icon, String title, String subtitle) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Material(
-        borderRadius: BorderRadius.circular(10),
-        elevation: 2.0,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 10.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.black),
-              const SizedBox(width: 20.0),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w600),
-                  ),
-                  if (subtitle.isNotEmpty)
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.poppins(color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w600),
-                    ),
-                ],
-              )
-            ],
-          ),
-        ),
+  Widget _sectionLabel(BuildContext context, String label) {
+    return Text(
+      label.toUpperCase(),
+      style: GoogleFonts.poppins(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.8,
+        color: Theme.of(context).colorScheme.primary,
       ),
     );
   }
 
-  Widget buildActionTile(IconData icon, String label) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Material(
-        borderRadius: BorderRadius.circular(10),
-        elevation: 2.0,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 10.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.black),
-              const SizedBox(width: 20.0),
-              Text(
-                label,
-                style: GoogleFonts.poppins(color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w600),
-              )
-            ],
-          ),
-        ),
+  Widget buildInfoTile(BuildContext context, IconData icon, String title, String subtitle) {
+    return Card(
+      child: ListTile(
+        leading: Icon(icon),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle),
+      ),
+    );
+  }
+
+  Widget buildActionTile(BuildContext context, IconData icon, String label,
+      {required VoidCallback onTap, Color? iconColor}) {
+    return Card(
+      child: ListTile(
+        leading: Icon(icon, color: iconColor),
+        title: Text(label, style: TextStyle(fontWeight: FontWeight.w600, color: iconColor)),
+        onTap: onTap,
       ),
     );
   }
