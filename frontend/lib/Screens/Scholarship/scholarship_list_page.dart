@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:fundfinderff/Screens/UserInfo/userinfo.dart';
 import 'package:fundfinderff/state/auth_provider.dart';
 import 'package:fundfinderff/state/match_provider.dart';
+import 'package:fundfinderff/theme/spacing.dart';
 import 'package:fundfinderff/widgets/scholarship_card.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ScholarshipListPage extends StatefulWidget {
   const ScholarshipListPage({Key? key}) : super(key: key);
@@ -25,11 +26,12 @@ class _ScholarshipListPageState extends State<ScholarshipListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: Color(0xFFFFFFFF),
       body: SafeArea(
-        child: Container(
-          margin: const EdgeInsets.only(top: 20.0, left: 20.0, right: 20.0),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -43,33 +45,34 @@ class _ScholarshipListPageState extends State<ScholarshipListPage> {
                       children: [
                         Text(
                           "Hello,",
-                          style: GoogleFonts.poppins(color: Colors.black, fontSize: 20.0, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 16.0),
                         ),
                         Text(
                           auth.currentUser?.fullName ?? "there",
-                          style: GoogleFonts.poppins(
-                              color: const Color.fromARGB(255, 0, 0, 0), fontSize: 24.0, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.poppins(fontSize: 22.0, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 15.0),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
-                          "Bringing Opportunities to Your Doorstep",
-                          style: GoogleFonts.poppins(color: Colors.black54, fontSize: 14.0, fontWeight: FontWeight.w500),
+                          "Bringing opportunities to your doorstep",
+                          style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13.0),
                         ),
                       ],
                     ),
                   ),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.asset("assets/appicon.png", height: 50, width: 50, fit: BoxFit.cover),
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: colorScheme.primaryContainer,
+                    child: Icon(Icons.school_rounded, color: colorScheme.onPrimaryContainer),
                   ),
                 ],
               ),
-              const Divider(color: Colors.black),
+              const SizedBox(height: AppSpacing.md),
+              const Divider(),
               Expanded(
                 child: Consumer<MatchProvider>(
                   builder: (context, matchProvider, _) {
                     if (matchProvider.loading) {
-                      return const Center(child: CircularProgressIndicator());
+                      return _loadingState(context);
                     }
 
                     if (matchProvider.needsProfile) {
@@ -77,11 +80,11 @@ class _ScholarshipListPageState extends State<ScholarshipListPage> {
                     }
 
                     if (matchProvider.error != null) {
-                      return Center(child: Text("Error: ${matchProvider.error}"));
+                      return _errorState(context, matchProvider);
                     }
 
                     if (matchProvider.matches.isEmpty) {
-                      return const Center(child: Text("No matching scholarships found right now."));
+                      return _emptyState(context);
                     }
 
                     return RefreshIndicator(
@@ -92,11 +95,11 @@ class _ScholarshipListPageState extends State<ScholarshipListPage> {
                         itemBuilder: (context, index) {
                           if (index == 0) {
                             return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                               child: Text(
-                                '${matchProvider.matches.length} scholarships you\'re eligible for',
+                                '${matchProvider.matches.length} scholarship${matchProvider.matches.length == 1 ? '' : 's'} you\'re eligible for',
                                 style: GoogleFonts.poppins(
-                                    fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF4F8ED5)),
+                                    fontSize: 15, fontWeight: FontWeight.w600, color: colorScheme.primary),
                               ),
                             );
                           }
@@ -114,21 +117,97 @@ class _ScholarshipListPageState extends State<ScholarshipListPage> {
     );
   }
 
-  Widget _completeProfilePrompt(BuildContext context) {
+  Widget _loadingState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            "Finding scholarships for you...",
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyState(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.assignment_outlined, size: 48, color: Colors.grey),
-            SizedBox(height: 16),
+            Icon(Icons.search_off_rounded, size: 48, color: colorScheme.onSurfaceVariant),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              "No matching scholarships found right now",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              "Check back later - new scholarships are added regularly.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _errorState(BuildContext context, MatchProvider matchProvider) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline_rounded, size: 48, color: colorScheme.error),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              "Something went wrong while fetching scholarships",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              matchProvider.error!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton(
+              onPressed: () => matchProvider.fetchMatches(),
+              child: const Text("Try again"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _completeProfilePrompt(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.assignment_outlined, size: 48, color: colorScheme.onSurfaceVariant),
+            const SizedBox(height: AppSpacing.md),
             Text(
               "Complete your profile to see matched scholarships",
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
               onPressed: () async {
                 await Navigator.push(
@@ -137,7 +216,7 @@ class _ScholarshipListPageState extends State<ScholarshipListPage> {
                 );
                 if (context.mounted) context.read<MatchProvider>().fetchMatches();
               },
-              child: Text("Complete Profile"),
+              child: const Text("Complete Profile"),
             ),
           ],
         ),
