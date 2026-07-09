@@ -8,6 +8,8 @@ import 'package:fundfinderff/Screens/Chatbot/chat_provider.dart';
 import 'package:fundfinderff/state/auth_provider.dart';
 import 'package:fundfinderff/state/profile_provider.dart';
 import 'package:fundfinderff/state/match_provider.dart';
+import 'package:fundfinderff/state/theme_provider.dart';
+import 'package:fundfinderff/theme/app_theme.dart';
 
 void main() {
   runApp(
@@ -17,6 +19,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => MatchProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
       ],
       child: const MyApp(),
     ),
@@ -31,10 +34,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FundFinder',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: context.watch<ThemeProvider>().themeMode,
       routes: {
         '/login': (context) => const Login(),
         '/signin': (context) => const Signin(),
