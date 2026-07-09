@@ -108,7 +108,7 @@ minutes. Once you see `Started FundfinderBackendApplication`, the API is live at
 `http://localhost:8080`. On startup it automatically:
 
 - Creates all database tables (via Hibernate `ddl-auto: update`)
-- Seeds **18 real Indian scholarships** (see [Seeded scholarship data](#seeded-scholarship-data))
+- Seeds **51 real Indian scholarships** (see [Seeded scholarship data](#seeded-scholarship-data))
 - Seeds one admin account: `admin@fundfinder.local` / `Admin@12345`
 
 Both the seed steps are idempotent — restarting the app never duplicates data.
@@ -128,7 +128,7 @@ Both the seed steps are idempotent — restarting the app never duplicates data.
 curl http://localhost:8080/api/scholarships
 ```
 
-should return a JSON array of 18 scholarships.
+should return a JSON array of 51 scholarships.
 
 ### 1.4 Run the backend tests
 
@@ -258,14 +258,25 @@ in name.
 
 ## Seeded scholarship data
 
-18 real Indian government and private scholarships, researched July 2026 — National
-Scholarship Portal schemes (Post-Matric SC/OBC/ST, Pre-Matric Minorities, NMMS, Central
-Sector Scheme, INSPIRE, Top Class Education for Students with Disabilities, Merit-cum-Means
-for Minorities), two state-specific schemes (Tamil Nadu, Maharashtra), and private trusts
-(Reliance Foundation, Aditya Birla Group, Kotak Education Foundation, LIC). Real scholarship
-deadlines and income ceilings change over time — treat the seed data as a realistic
-illustrative snapshot, not a live feed, and update it via the CRUD API above as schemes
-change.
+51 real Indian government and private scholarships, researched July 2026:
+
+- **National Scholarship Portal / central government schemes** (20) — Post-Matric SC/OBC/ST,
+  Pre-Matric Minorities, NMMS, Central Sector Scheme, INSPIRE, Top Class Education for
+  Students with Disabilities and for SC Students, Merit-cum-Means for Minorities, AICTE
+  Saksham, National Overseas Scholarship for SC, CBSE Single Girl Child, PM Scholarship for
+  Wards of Ex-Servicemen, National Fellowship for OBC/SC Students, Ishan Uday (North East),
+  PM-YASASVI Top Class for OBC/EBC/DNT, and the Prime Minister's Research Fellowship.
+- **State-specific schemes** (11), spanning Tamil Nadu, Maharashtra, Karnataka, Kerala,
+  Uttar Pradesh, West Bengal, Gujarat, Rajasthan, Andhra Pradesh, Telangana and Punjab.
+- **Private trusts and corporate foundations** (20) — Reliance Foundation (UG and PG),
+  Aditya Birla Group, Kotak Education Foundation, LIC, Sitaram Jindal Foundation, HDFC Bank
+  Parivartan, ONGC Foundation, L&T, Tata Trusts (JN Tata Endowment), NTPC, Indian Oil, K.C.
+  Mahindra Education Trust, Colgate-Palmolive, Foundation for Excellence, Inlaks Shivdasani
+  Foundation, Bharat Petroleum, Aga Khan Foundation and Coal India Limited.
+
+Real scholarship deadlines and income ceilings change over time — treat the seed data as a
+realistic illustrative snapshot, not a live feed, and update it via the CRUD API above as
+schemes change.
 
 ---
 
@@ -370,7 +381,7 @@ rotate on every use, so logout can genuinely revoke access server-side.
 
 Documented honestly rather than left for someone to discover:
 
-- **Seeded data is a snapshot, not a live feed.** The 18 scholarships were researched in
+- **Seeded data is a snapshot, not a live feed.** The 51 scholarships were researched in
   July 2026 — real deadlines and income ceilings for government schemes change periodically.
   There's no scheduled job to refresh them automatically; updates go through the admin API.
 - **No admin UI.** Scholarship CRUD is Postman/curl-only by design (see
