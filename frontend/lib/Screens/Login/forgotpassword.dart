@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fundfinderff/Screens/Login/Signin.dart';
+import 'package:fundfinderff/theme/spacing.dart';
+import 'package:fundfinderff/widgets/app_snackbar.dart';
 
 /// Password reset has no backend endpoint yet (out of scope for this
 /// rebuild) - rather than wire this button to nothing or silently remove a
@@ -17,152 +19,84 @@ class _ForgotPassState extends State<ForgotPass> {
   final GlobalKey<FormState> _formkey = GlobalKey<FormState>();
 
   void showComingSoon() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "Password reset isn't available yet. Please contact support.",
-          style: TextStyle(fontSize: 16.0),
-        ),
-        backgroundColor: Colors.orange,
-      ),
+    AppSnackBar.show(
+      context,
+      "Password reset isn't available yet. Please contact support.",
+      type: SnackBarType.info,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Column(
-        children: [
-          Align(
-            alignment: Alignment.topLeft,
-            child: SafeArea(
-              child: IconButton(
-                icon: Icon(Icons.arrow_back_ios, color: Colors.white),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-              ),
-            ),
-          ),
-          SizedBox(height: 10.0),
-          Text(
-            "Password Recovery",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 30.0,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 10.0),
-          Text(
-            "Enter your email",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20.0,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Expanded(
-            child: Form(
-              key: _formkey,
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: ListView(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12.0),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white70, width: 2.0),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: TextFormField(
-                        controller: mailcontroller,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          return null;
-                        },
-                        style: TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: "Email",
-                          hintStyle: TextStyle(
-                            fontSize: 18.0,
-                            color: Colors.white54,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.email,
-                            color: Colors.white70,
-                            size: 30.0,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 30.0),
-                    GestureDetector(
-                      onTap: () {
-                        if (_formkey.currentState!.validate()) {
-                          FocusScope.of(context).unfocus();
-                          showComingSoon();
-                        }
-                      },
-                      child: Container(
-                        width: 140,
-                        padding: EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Center(
-                          child: Text(
-                            "Send Email",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 18.0,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 50.0),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+      appBar: AppBar(title: const Text("Password Recovery")),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Form(
+                    key: _formkey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Icon(Icons.lock_reset_rounded, size: 40, color: colorScheme.primary),
+                        const SizedBox(height: AppSpacing.sm),
                         Text(
-                          "Don't have an account?",
-                          style:
-                              TextStyle(fontSize: 18.0, color: Colors.white),
+                          "Enter your email and we'll help you get back in",
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
                         ),
-                        SizedBox(width: 5.0),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => Signin(),
-                              ),
-                            );
+                        const SizedBox(height: AppSpacing.lg),
+                        TextFormField(
+                          controller: mailcontroller,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your email';
+                            }
+                            return null;
                           },
-                          child: Text(
-                            "Create",
-                            style: TextStyle(
-                              color: Color.fromARGB(225, 184, 166, 6),
-                              fontSize: 20.0,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email_outlined),
                           ),
-                        )
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (_formkey.currentState!.validate()) {
+                                FocusScope.of(context).unfocus();
+                                showComingSoon();
+                              }
+                            },
+                            child: const Text("Send Email"),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Center(
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => Signin()));
+                            },
+                            child: const Text("Don't have an account? Create one"),
+                          ),
+                        ),
                       ],
-                    )
-                  ],
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -7,6 +7,9 @@ import 'package:fundfinderff/Screens/Login/forgotpassword.dart';
 import 'package:fundfinderff/services/api_exception.dart';
 import 'package:fundfinderff/state/auth_provider.dart';
 import 'package:fundfinderff/state/profile_provider.dart';
+import 'package:fundfinderff/theme/spacing.dart';
+import 'package:fundfinderff/widgets/app_snackbar.dart';
+import 'package:fundfinderff/widgets/fade_slide_route.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class Login extends StatefulWidget {
@@ -39,16 +42,14 @@ class _LoginState extends State<Login> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => profileProvider.hasProfile ? BottomNav() : Userinfo(),
-        ),
+        fadeSlideRoute(profileProvider.hasProfile ? BottomNav() : Userinfo()),
       );
     } on ApiException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
+      AppSnackBar.show(
+        context,
         e.statusCode == 401 ? "Incorrect email or password" : e.message,
-        style: TextStyle(fontSize: 18.0, color: Colors.black),
-      )));
+        type: SnackBarType.error,
+      );
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
@@ -56,251 +57,131 @@ class _LoginState extends State<Login> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Container(
-          child: Stack(
-            children: [
-              Container(
-                width: MediaQuery.of(context).size.width,
-                height: MediaQuery.of(context).size.height / 2.5,
-                decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                      Color.fromARGB(255, 205, 160, 226),
-                      Color.fromARGB(255, 144, 193, 240),
-                    ])),
-              ),
-              SingleChildScrollView(
-                child: Container(
-                  margin: EdgeInsets.only(
-                      top: MediaQuery.of(context).size.height / 3),
-                  height: MediaQuery.of(context).size.height / 2,
-                  width: MediaQuery.of(context).size.width,
-                  decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white,
-                            Colors.white,
-                          ]),
-                      borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(40),
-                          topRight: Radius.circular(40))),
-                  child: Text(""),
-                ),
-              ),
-              Container(
-                margin: EdgeInsets.only(top: 60.0, left: 20.0, right: 20.0),
-                child: Column(
-                  children: [
-                    Center(
-                        child: Text(
-                      "FundFinder",
-                      style: GoogleFonts.megrim(
-                        color: Colors.black,
-                        fontSize: 50,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )),
-                    SizedBox(
-                      height: 50.0,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.school_rounded, size: 56, color: colorScheme.primary),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    "FundFinder",
+                    style: GoogleFonts.poppins(
+                      color: colorScheme.primary,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
                     ),
-                    SingleChildScrollView(
-                      child: Material(
-                        elevation: 5.0,
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-                          width: MediaQuery.of(context).size.width,
-                          decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Color.fromARGB(255, 205, 160, 226),
-                                    Color.fromARGB(255, 144, 193, 240),
-                                  ]),
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20)),
-                          child: Form(
-                            key: _formkey,
-                            child: Column(
-                              children: [
-                                SizedBox(
-                                  height: 30.0,
-                                ),
-                                Text(
-                                  "Login",
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.black,
-                                    fontSize: 24.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 30.0,
-                                ),
-                                TextFormField(
-                                  controller: useremailcontroller,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please Enter Email';
-                                    }
-                                    return null;
-                                  },
-                                  decoration: InputDecoration(
-                                      hintText: 'Email',
-                                      hintStyle: GoogleFonts.poppins(
-                                        color: Colors.black54,
-                                        fontSize: 15.0,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      prefixIcon: Icon(Icons.email_outlined)),
-                                ),
-                                SizedBox(
-                                  height: 30.0,
-                                ),
-                                TextFormField(
-                                  controller: userpasswordcontroller,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please Enter Password';
-                                    }
-                                    return null;
-                                  },
-                                  obscureText: textvisible,
-                                  decoration: InputDecoration(
-                                    hintText: 'Password',
-                                    hintStyle: GoogleFonts.poppins(
-                                      color: Colors.black54,
-                                      fontSize: 15.0,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    prefixIcon: Icon(Icons.password_outlined),
-                                    suffixIcon: IconButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            textvisible = !textvisible;
-                                          });
-                                        },
-                                        icon: textvisible
-                                            ? Icon(Icons.visibility,
-                                                color: Colors.black54)
-                                            : Icon(
-                                                Icons.visibility_off,
-                                                color: Colors.black54,
-                                              )),
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 20.0,
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                ForgotPass()));
-                                  },
-                                  child: Container(
-                                      alignment: Alignment.topRight,
-                                      child: Text(
-                                        "Forgot Password?",
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.black54,
-                                          fontSize: 15.0,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      )),
-                                ),
-                                SizedBox(
-                                  height: 80.0,
-                                ),
-                                GestureDetector(
-                                  onTap: isSubmitting
-                                      ? null
-                                      : () {
-                                          if (_formkey.currentState!.validate()) {
-                                            setState(() {
-                                              email = useremailcontroller.text.trim();
-                                              password =
-                                                  userpasswordcontroller.text.trim();
-                                            });
-                                            userLogin();
-                                          }
-                                        },
-                                  child: Material(
-                                    elevation: 5.0,
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: Container(
-                                      padding:
-                                          EdgeInsets.symmetric(vertical: 8.0),
-                                      width: 200,
-                                      decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                              colors: [
-                                                Color.fromARGB(
-                                                    255, 205, 160, 226),
-                                                Color.fromARGB(
-                                                    255, 144, 193, 240),
-                                              ]),
-                                          borderRadius:
-                                              BorderRadius.circular(20)),
-                                      child: Center(
-                                          child: isSubmitting
-                                              ? SizedBox(
-                                                  height: 20,
-                                                  width: 20,
-                                                  child: CircularProgressIndicator(
-                                                      strokeWidth: 2, color: Colors.black),
-                                                )
-                                              : Text(
-                                                  "LOGIN",
-                                                  style: GoogleFonts.poppins(
-                                                      color: Colors.black,
-                                                      fontSize: 18.0,
-                                                      fontWeight: FontWeight.bold),
-                                                )),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    "Scholarships matched to you",
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Form(
+                        key: _formkey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Login",
+                              style: GoogleFonts.poppins(fontSize: 22.0, fontWeight: FontWeight.bold),
                             ),
-                          ),
+                            const SizedBox(height: AppSpacing.lg),
+                            TextFormField(
+                              controller: useremailcontroller,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please Enter Email';
+                                }
+                                return null;
+                              },
+                              decoration: const InputDecoration(
+                                labelText: 'Email',
+                                prefixIcon: Icon(Icons.email_outlined),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            TextFormField(
+                              controller: userpasswordcontroller,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please Enter Password';
+                                }
+                                return null;
+                              },
+                              obscureText: textvisible,
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                prefixIcon: const Icon(Icons.password_outlined),
+                                suffixIcon: IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      textvisible = !textvisible;
+                                    });
+                                  },
+                                  icon: Icon(textvisible ? Icons.visibility : Icons.visibility_off),
+                                ),
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () {
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => ForgotPass()));
+                                },
+                                child: const Text("Forgot Password?"),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: isSubmitting
+                                    ? null
+                                    : () {
+                                        if (_formkey.currentState!.validate()) {
+                                          setState(() {
+                                            email = useremailcontroller.text.trim();
+                                            password = userpasswordcontroller.text.trim();
+                                          });
+                                          userLogin();
+                                        }
+                                      },
+                                child: isSubmitting
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      )
+                                    : const Text("LOGIN"),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    SizedBox(
-                      height: 70.0,
-                    ),
-                    GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => Signin()));
-                        },
-                        child: Text(
-                          "Don't have an account? Sign up",
-                          style: GoogleFonts.poppins(
-                            color: Colors.black54,
-                            fontSize: 15.0,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          selectionColor: Colors.white,
-                        ))
-                  ],
-                ),
-              )
-            ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => Signin()));
+                    },
+                    child: const Text("Don't have an account? Sign up"),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
